@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "can_protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -115,6 +115,8 @@ int main(void)
   {
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
+
+    
 
     /* USER CODE BEGIN 3 */
   }
