@@ -351,15 +351,15 @@
         </option>
         <option>
           <name>CCIncludePath2</name>
+          <state>$PROJ_DIR$/../USB_HOST/App</state>
+          <state>$PROJ_DIR$/../USB_HOST/Target</state>
           <state>$PROJ_DIR$/../Core/Inc</state>
           <state>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Inc</state>
           <state>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy</state>
+          <state>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Core/Inc</state>
+          <state>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Class/CDC/Inc</state>
           <state>$PROJ_DIR$/../Drivers/CMSIS/Device/ST/STM32F4xx/Include</state>
           <state>$PROJ_DIR$/../Drivers/CMSIS/Include</state>
-          <state>$PROJ_DIR$/../USB_DEVICE/App</state>
-          <state>$PROJ_DIR$/../USB_DEVICE/Target</state>
-          <state>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Device_Library/Core/Inc</state>
-          <state>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -1094,23 +1094,20 @@
         </file>
       </group>
       <group>
-        <name>USB_DEVICE</name>
+        <name>USB_HOST</name>
         <group>
           <name>App</name>
           <file>
-            <name>$PROJ_DIR$/../USB_DEVICE/App/usb_device.c</name>
-          </file>
-          <file>
-            <name>$PROJ_DIR$/../USB_DEVICE/App/usbd_desc.c</name>
-          </file>
-          <file>
-            <name>$PROJ_DIR$/../USB_DEVICE/App/usbd_cdc_if.c</name>
+            <name>$PROJ_DIR$/../USB_HOST/App/usb_host.c</name>
           </file>
         </group>
         <group>
           <name>Target</name>
           <file>
-            <name>$PROJ_DIR$/../USB_DEVICE/Target/usbd_conf.c</name>
+            <name>$PROJ_DIR$/../USB_HOST/Target/usbh_conf.c</name>
+          </file>
+          <file>
+            <name>$PROJ_DIR$/../USB_HOST/Target/usbh_platform.c</name>
           </file>
         </group>
       </group>
@@ -1121,10 +1118,7 @@
     <group>
       <name>STM32F4xx_HAL_Driver</name>
       <file>
-        <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c</name>
+        <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hcd.c</name>
       </file>
       <file>
         <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c</name>
@@ -1194,18 +1188,21 @@
   <group>
     <name>Middlewares</name>
     <group>
-      <name>USB_Device_Library</name>
+      <name>USB_Host_Library</name>
       <file>
-        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c</name>
+        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c</name>
+        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c</name>
+        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c</name>
+        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../Middlewares/ST/STM32_USB_Host_Library/Class/CDC/Src/usbh_cdc.c</name>
       </file>
     </group>
   </group>
