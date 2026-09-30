@@ -50,6 +50,9 @@ I2S_HandleTypeDef hi2s3;
 SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
+CAN_TxHeaderTypeDef TxHeader;
+uint8_t TxData[1];
+uint32_t TxMailbox;
 
 /* USER CODE END PV */
 
@@ -105,7 +108,20 @@ int main(void)
   MX_SPI1_Init();
   MX_USB_HOST_Init();
   MX_CAN1_Init();
+
+
   /* USER CODE BEGIN 2 */
+  if (HAL_CAN_Start(&hcan1) != HAL_OK)
+  {
+      Error_Handler();
+  }
+
+  TxHeader.StdId = CAN_ID_LED_CMD;
+  TxHeader.ExtId = 0;
+  TxHeader.IDE = CAN_ID_STD;
+  TxHeader.RTR = CAN_RTR_DATA;
+  TxHeader.DLC = 1;
+  TxHeader.TransmitGlobalTime = DISABLE;
 
   /* USER CODE END 2 */
 
@@ -114,9 +130,12 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
+    if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+    {
+        Error_Handler();
+    }
 
-    
+    HAL_Delay(1000);
 
     /* USER CODE BEGIN 3 */
   }
