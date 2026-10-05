@@ -54,6 +54,10 @@ CAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[1];
 uint32_t TxMailbox;
 
+CAN_RxHeaderTypeDef RxHeader;
+uint8_t RxData[8];
+volatile uint8_t ack_received = 0;
+volatile uint8_t ack_code = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +73,33 @@ static void MX_CAN1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static void CAN_Filter_Config(void)
+{
+    CAN_FilterTypeDef f = {0};
+    f.FilterBank = 0;
+    f.FilterMode = CAN_FILTERMODE_IDMASK;
+    f.FilterScale = CAN_FILTERSCALE_32BIT;
+    f.FilterIdHigh = 0;
+    f.FilterIdLow = 0;
+    f.FilterMaskIdHigh = 0;
+    f.FilterMaskIdLow = 0;               /* accepte tout */
+    f.FilterFIFOAssignment = CAN_RX_FIFO0;
+    f.FilterActivation = ENABLE;
+    f.SlaveStartFilterBank = 14;
+    if (HAL_CAN_ConfigFilter(&hcan1, &f) != HAL_OK) Error_Handler();
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK) return;
+
+    if (RxHeader.StdId == CAN_ID_ACK && RxHeader.DLC >= 1)
+    {
+        ack_code = RxData[0];      /* 0x01 = ACK_OK */
+        ack_received = 1;
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -112,6 +143,11 @@ int main(void)
       Error_Handler();
   }
 
+  if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+  {
+      Error_Handler();
+  }
+
   TxHeader.StdId = CAN_ID_LED_CMD;
   TxHeader.ExtId = 0;
   TxHeader.IDE = CAN_ID_STD;
@@ -128,19 +164,23 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    TxHeader.StdId = CAN_ID_LED_CMD;
-    TxHeader.DLC = 1;
-    TxData[0] = LED_ON;
+    TxHeader.StdId = CAN_ID_LED_CMD;     /* 0x100 */
+    TxHeader.DLC   = 1;
+    
+    TxData[0]      = 0x01;
+    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+    HAL_Delay(1000);
+      
+    /* Frame 0x100, DLC 1, DB0 = 0 */
+    TxData[0] = 0x00;
     HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
     HAL_Delay(1000);
 
-    TxData[0] = LED_OFF;
+    /* Frame 0x101, DLC 0, no data */
+    TxHeader.StdId = CAN_ID_VALUE_REQ;   /* 0x101 */
+    TxHeader.DLC   = 0;
     HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
     HAL_Delay(1000);
-
-    TxHeader.StdId = CAN_ID_VALUE_REQ;
-    TxHeader.DLC = 0;
-    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
   }
   /* USER CODE END 3 */
 }
