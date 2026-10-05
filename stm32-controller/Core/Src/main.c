@@ -63,8 +63,6 @@ static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_CAN1_Init(void);
-void MX_USB_HOST_Process(void);
-
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -106,10 +104,8 @@ int main(void)
   MX_I2C1_Init();
   MX_I2S3_Init();
   MX_SPI1_Init();
-  MX_USB_HOST_Init();
   MX_CAN1_Init();
-
-
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   if (HAL_CAN_Start(&hcan1) != HAL_OK)
   {
@@ -130,12 +126,6 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    HAL_Delay(1000);
 
     /* USER CODE BEGIN 3 */
   }
