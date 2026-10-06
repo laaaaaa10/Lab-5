@@ -50,7 +50,11 @@ I2S_HandleTypeDef hi2s3;
 SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
-
+volatile uint32_t rx_id = 0;      // identifiant reçu
+volatile uint8_t  rx_dlc = 0;     // nombre d'octets reçus
+volatile uint8_t  rx_data[8];     // données reçues
+volatile uint8_t  rx_flag = 0;    // 1 = nouvelle trame à traiter
+volatile uint32_t rx_count = 0;   // nombre de trames reçues (debug)
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,7 +110,21 @@ int main(void)
   MX_USB_HOST_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
+  CAN_FilterTypeDef filtre;
+  filtre.FilterBank = 0;
+  filtre.FilterMode = CAN_FILTERMODE_IDMASK;
+  filtre.FilterScale = CAN_FILTERSCALE_32BIT;
+  filtre.FilterIdHigh = 0x0000;
+  filtre.FilterIdLow = 0x0000;
+  filtre.FilterMaskIdHigh = 0x0000;   // masque à 0 = accepte TOUTES les trames
+  filtre.FilterMaskIdLow = 0x0000;
+  filtre.FilterFIFOAssignment = CAN_RX_FIFO0;
+  filtre.FilterActivation = ENABLE;
+  filtre.SlaveStartFilterBank = 14;
 
+  if (HAL_CAN_ConfigFilter(&hcan1, &filtre) != HAL_OK) Error_Handler();
+  if (HAL_CAN_Start(&hcan1) != HAL_OK) Error_Handler();
+  if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) Error_Handler();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -408,7 +426,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+  CAN_RxHeaderTypeDef rxHeader;
+  uint8_t data[8];
 
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, data) == HAL_OK)
+  {
+    rx_id  = rxHeader.StdId;
+    rx_dlc = rxHeader.DLC;
+    for (uint8_t i = 0; i < rx_dlc; i++)
+    {
+      rx_data[i] = data[i];
+    }
+    rx_count++;
+    rx_flag = 1;
+  }
+}
 /* USER CODE END 4 */
 
 /**
