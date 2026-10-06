@@ -18,11 +18,13 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "usb_host.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "can_protocol.h"
+#include "usbd_cdc_if.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,8 +66,6 @@ static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_CAN1_Init(void);
-void MX_USB_HOST_Process(void);
-
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -107,8 +107,8 @@ int main(void)
   MX_I2C1_Init();
   MX_I2S3_Init();
   MX_SPI1_Init();
-  MX_USB_HOST_Init();
   MX_CAN1_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   CAN_FilterTypeDef filtre;
   filtre.FilterBank = 0;
@@ -132,11 +132,37 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
 
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+	  /* USER CODE BEGIN 3 */
+	      if (rx_flag)
+	      {
+	        // Copie des données reçues (interruptions coupées pour éviter
+	        // que le callback les modifie pendant qu'on les lit)
+	        __disable_irq();
+	        uint32_t id  = rx_id;
+	        uint8_t  dlc = rx_dlc;
+	        uint32_t n   = rx_count;
+	        uint8_t  d[8];
+	        for (uint8_t i = 0; i < dlc; i++) d[i] = rx_data[i];
+	        rx_flag = 0;
+	        __enable_irq();
+
+	        // Construction du message
+	        char msg[80];
+	        int len = sprintf(msg, "#%lu  ID=0x%03lX  DLC=%u  DATA=", n, id, dlc);
+	        for (uint8_t i = 0; i < dlc; i++)
+	        {
+	          len += sprintf(msg + len, "%02X ", d[i]);
+	        }
+	        len += sprintf(msg + len, "\r\n");
+
+	        // Envoi par USB (on réessaie max 10 ms si l'USB est occupé)
+	        uint32_t t0 = HAL_GetTick();
+	        while (CDC_Transmit_FS((uint8_t*)msg, len) == USBD_BUSY
+	               && (HAL_GetTick() - t0) < 10);
+	      }
+	    }
+	    /* USER CODE END 3 */
 }
 
 /**
