@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define COUNTER_PERIOD_MS  1000   // le compteur augmente de 1 à chaque seconde
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,6 +57,9 @@ volatile uint8_t  rx_dlc = 0;     // nombre d'octets reçus
 volatile uint8_t  rx_data[8];     // données reçues
 volatile uint8_t  rx_flag = 0;    // 1 = nouvelle trame à traiter
 volatile uint32_t rx_count = 0;   // nombre de trames reçues (debug)
+
+static uint16_t counter = 0;        // compteur 16 bits demandé par le labo (étape 7)
+static uint32_t counter_tick = 0;   // instant (ms) du dernier incrément
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,6 +71,7 @@ static void MX_SPI1_Init(void);
 static void MX_CAN1_Init(void);
 /* USER CODE BEGIN PFP */
 static HAL_StatusTypeDef CAN_SendAck(uint8_t code);
+static HAL_StatusTypeDef CAN_SendCounter(uint16_t value);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -134,6 +138,13 @@ int main(void)
     /* USER CODE END WHILE */
 
 	  /* USER CODE BEGIN 3 */
+	      // 0) Incrément périodique du compteur (non bloquant, sans HAL_Delay)
+	      if (HAL_GetTick() - counter_tick >= COUNTER_PERIOD_MS)
+	      {
+	        counter_tick = HAL_GetTick();
+	        counter++;                      // uint16_t : revient à 0 après 65535
+	      }
+
 	      if (rx_flag)
 	      {
 	        // 1) Copie de la trame reçue
@@ -147,7 +158,7 @@ int main(void)
 	        __enable_irq();
 
 	        // 2) Affichage de la trame reçue
-	        char msg[120];
+	        char msg[160];
 	        int len = sprintf(msg, "#%lu  RX ID=0x%03lX  DLC=%u  DATA=", n, id, dlc);
 	        for (uint8_t i = 0; i < dlc; i++)
 	        {
@@ -181,7 +192,17 @@ int main(void)
 	          else
 	            len += sprintf(msg + len, " | ERREUR envoi ACK");
 	        }
-	        // 0x101 (demande de valeur) : sera traité à l'étape suivante
+	        // 3b) Demande de valeur (0x101) -> réponse 0x201 avec le compteur
+	        else if (id == CAN_ID_VALUE_REQ)
+	        {
+	          uint16_t value = counter;     // copie : la valeur envoyée = la valeur affichée
+
+	          if (CAN_SendCounter(value) == HAL_OK)
+	            len += sprintf(msg + len, " -> TX ID=0x201 DATA=%02X %02X (valeur=%u)",
+	                           (uint8_t)(value >> 8), (uint8_t)(value & 0xFF), value);
+	          else
+	            len += sprintf(msg + len, " -> ERREUR envoi 0x201");
+	        }
 
 	        len += sprintf(msg + len, "\r\n");
 
@@ -516,6 +537,29 @@ static HAL_StatusTypeDef CAN_SendAck(uint8_t code)
   if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0)
   {
     return HAL_BUSY;                    // les 3 boîtes d'envoi sont pleines
+  }
+  return HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
+}
+
+static HAL_StatusTypeDef CAN_SendCounter(uint16_t value)
+{
+  CAN_TxHeaderTypeDef txHeader;
+  uint8_t  txData[2];
+  uint32_t txMailbox;
+
+  txHeader.StdId = CAN_ID_COUNTER;      // 0x201
+  txHeader.ExtId = 0;
+  txHeader.IDE   = CAN_ID_STD;
+  txHeader.RTR   = CAN_RTR_DATA;
+  txHeader.DLC   = 2;                   // 2 octets : uint16 en Big-Endian
+  txHeader.TransmitGlobalTime = DISABLE;
+
+  txData[0] = (uint8_t)(value >> 8);    // DB0 = octet de poids fort (MSB)
+  txData[1] = (uint8_t)(value & 0xFF);  // DB1 = octet de poids faible (LSB)
+
+  if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0)
+  {
+    return HAL_BUSY;
   }
   return HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 }
