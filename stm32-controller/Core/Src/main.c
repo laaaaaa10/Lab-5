@@ -128,6 +128,19 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    TxHeader.StdId = CAN_ID_LED_CMD;
+    TxHeader.DLC = 1;
+    TxData[0] = LED_ON;
+    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+    HAL_Delay(1000);
+
+    TxData[0] = LED_OFF;
+    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+    HAL_Delay(1000);
+
+    TxHeader.StdId = CAN_ID_VALUE_REQ;
+    TxHeader.DLC = 0;
+    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
   }
   /* USER CODE END 3 */
 }
