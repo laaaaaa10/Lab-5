@@ -67,7 +67,7 @@ static void MX_I2S3_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_CAN1_Init(void);
 /* USER CODE BEGIN PFP */
-
+static HAL_StatusTypeDef CAN_SendAck(uint8_t code);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -136,8 +136,7 @@ int main(void)
 	  /* USER CODE BEGIN 3 */
 	      if (rx_flag)
 	      {
-	        // Copie des données reçues (interruptions coupées pour éviter
-	        // que le callback les modifie pendant qu'on les lit)
+	        // 1) Copie de la trame reçue
 	        __disable_irq();
 	        uint32_t id  = rx_id;
 	        uint8_t  dlc = rx_dlc;
@@ -147,16 +146,46 @@ int main(void)
 	        rx_flag = 0;
 	        __enable_irq();
 
-	        // Construction du message
-	        char msg[80];
-	        int len = sprintf(msg, "#%lu  ID=0x%03lX  DLC=%u  DATA=", n, id, dlc);
+	        // 2) Affichage de la trame reçue
+	        char msg[120];
+	        int len = sprintf(msg, "#%lu  RX ID=0x%03lX  DLC=%u  DATA=", n, id, dlc);
 	        for (uint8_t i = 0; i < dlc; i++)
 	        {
 	          len += sprintf(msg + len, "%02X ", d[i]);
 	        }
+
+	        // 3) Traitement de la commande LED (0x100)
+	        if (id == CAN_ID_LED_CMD)
+	        {
+	          uint8_t ack = ACK_OK;
+
+	          if (dlc >= 1 && d[0] == LED_ON)
+	          {
+	            HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);    // LED verte ON
+	            len += sprintf(msg + len, " -> LED ON");
+	          }
+	          else if (dlc >= 1 && d[0] == LED_OFF)
+	          {
+	            HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);  // LED verte OFF
+	            len += sprintf(msg + len, " -> LED OFF");
+	          }
+	          else
+	          {
+	            ack = ACK_ERROR;    // DLC = 0 ou valeur autre que 0x00 / 0x01
+	            len += sprintf(msg + len, " -> commande invalide");
+	          }
+
+	          // 4) Envoi de l'ACK 0x210
+	          if (CAN_SendAck(ack) == HAL_OK)
+	            len += sprintf(msg + len, " | TX ID=0x210 ACK=%02X", ack);
+	          else
+	            len += sprintf(msg + len, " | ERREUR envoi ACK");
+	        }
+	        // 0x101 (demande de valeur) : sera traité à l'étape suivante
+
 	        len += sprintf(msg + len, "\r\n");
 
-	        // Envoi par USB (on réessaie max 10 ms si l'USB est occupé)
+	        // 5) Envoi vers PuTTY
 	        uint32_t t0 = HAL_GetTick();
 	        while (CDC_Transmit_FS((uint8_t*)msg, len) == USBD_BUSY
 	               && (HAL_GetTick() - t0) < 10);
@@ -468,6 +497,27 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     rx_count++;
     rx_flag = 1;
   }
+}
+
+static HAL_StatusTypeDef CAN_SendAck(uint8_t code)
+{
+  CAN_TxHeaderTypeDef txHeader;
+  uint8_t  txData[1];
+  uint32_t txMailbox;
+
+  txHeader.StdId = CAN_ID_ACK;          // 0x210
+  txHeader.ExtId = 0;
+  txHeader.IDE   = CAN_ID_STD;          // identifiant standard 11 bits
+  txHeader.RTR   = CAN_RTR_DATA;        // trame de données
+  txHeader.DLC   = 1;                   // 1 octet : DB0 = code
+  txHeader.TransmitGlobalTime = DISABLE;
+  txData[0] = code;
+
+  if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0)
+  {
+    return HAL_BUSY;                    // les 3 boîtes d'envoi sont pleines
+  }
+  return HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
 }
 /* USER CODE END 4 */
 
