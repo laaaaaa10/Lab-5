@@ -116,12 +116,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
   CAN_FilterTypeDef filtre;
   filtre.FilterBank = 0;
-  filtre.FilterMode = CAN_FILTERMODE_IDMASK;
-  filtre.FilterScale = CAN_FILTERSCALE_32BIT;
-  filtre.FilterIdHigh = 0x0000;
-  filtre.FilterIdLow = 0x0000;
-  filtre.FilterMaskIdHigh = 0x0000;   // masque à 0 = accepte TOUTES les trames
-  filtre.FilterMaskIdLow = 0x0000;
+  filtre.FilterMode = CAN_FILTERMODE_IDLIST;           // liste d'identifiants exacts
+  filtre.FilterScale = CAN_FILTERSCALE_32BIT;          // 32 bits : 2 identifiants par banque
+  filtre.FilterIdHigh = (CAN_ID_LED_CMD << 5);         // ID n°1 = 0x100 (StdId dans les bits 15..5)
+  filtre.FilterIdLow = 0x0000;                         // IDE = 0 (standard), RTR = 0 (données)
+  filtre.FilterMaskIdHigh = (CAN_ID_VALUE_REQ << 5);   // ID n°2 = 0x101 (en mode liste, ce n'est pas un masque)
+  filtre.FilterMaskIdLow = 0x0000;                     // IDE = 0 (standard), RTR = 0 (données)
   filtre.FilterFIFOAssignment = CAN_RX_FIFO0;
   filtre.FilterActivation = ENABLE;
   filtre.SlaveStartFilterBank = 14;
