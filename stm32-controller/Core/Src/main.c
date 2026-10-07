@@ -147,6 +147,8 @@ int main(void)
   MX_CAN1_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+  //Can_Filter_Config();
+  
   if (HAL_CAN_Start(&hcan1) != HAL_OK)
   {
       Error_Handler();
