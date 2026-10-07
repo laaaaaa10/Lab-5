@@ -58,6 +58,9 @@ CAN_RxHeaderTypeDef RxHeader;
 uint8_t RxData[8];
 volatile uint8_t ack_received = 0;
 volatile uint8_t ack_code = 0;
+
+volatile uint8_t  counter_received = 0;
+volatile uint16_t counter_value = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,6 +101,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     {
         ack_code = RxData[0];      /* 0x01 = ACK_OK */
         ack_received = 1;
+    }
+
+    else if (RxHeader.StdId == CAN_ID_COUNTER && RxHeader.DLC >= 2)
+    {
+        counter_value = ((uint16_t)RxData[0] << 8) | RxData[1];
+        counter_received = 1;
     }
 }
 
@@ -177,6 +186,7 @@ int main(void)
     HAL_Delay(1000);
 
     /* Frame 0x101, DLC 0, no data */
+    counter_received = 0;
     TxHeader.StdId = CAN_ID_VALUE_REQ;   /* 0x101 */
     TxHeader.DLC   = 0;
     HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
