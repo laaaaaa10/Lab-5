@@ -8,9 +8,11 @@ class CanManager:
         self.interface = interface
         self.bus = None
 
+    #Opening and Closing the Socket
     def open(self):
         self.bus = can.interface.Bus(channel=self.channel, interface=self.interface)
-
+    
+    #Sending Data
     def send(self, arbitration_id, data=()):
         msg = can.Message(
             arbitration_id=arbitration_id,
@@ -33,10 +35,12 @@ class CanManager:
             remaining = end - time.time()
             if remaining <= 0:
                 return None
-            frame = self.receive(timeout=remaining)
+            frame = self.receive(timeout=remaining) # Repeatedly called until a frame matching the target arbitration_id arrives (or the timeout runs out).
             if frame is not None and frame[0] == arbitration_id:
                 return frame[1]
 
+    
+    #Opening and Closing the Socket
     def close(self):
         if self.bus is not None:
             self.bus.shutdown()
